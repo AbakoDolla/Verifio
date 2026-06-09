@@ -121,8 +121,8 @@ export default function LandingPage() {
       <header className="sticky top-0 z-50 bg-[#0A192F] border-b border-white/10 backdrop-blur-md">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
-              <Shield className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center p-1 shadow-lg shadow-emerald-500/20">
+              <img src="/logo.png" alt="Verifio" className="w-full h-full object-contain" />
             </div>
             <span className="text-white font-bold text-xl tracking-tight">
               Verifio
@@ -161,7 +161,7 @@ export default function LandingPage() {
 
         <div className="max-w-3xl mx-auto text-center relative">
           <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold px-4 py-2 rounded-full mb-6">
-            <Shield className="w-3.5 h-3.5" />
+            <img src="/logo.png" alt="" className="w-4 h-4 object-contain brightness-0 invert" />
             La sécurité du commerce social en Afrique
           </div>
 
@@ -357,8 +357,8 @@ export default function LandingPage() {
       <footer className="bg-[#0B132B] border-t border-white/5 py-10 px-4">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 bg-emerald-500 rounded-lg flex items-center justify-center">
-              <Shield className="w-4 h-4 text-white" />
+            <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center p-0.5">
+              <img src="/logo.png" alt="Verifio" className="w-full h-full object-contain" />
             </div>
             <span className="text-white font-bold">Verifio</span>
           </div>

@@ -172,8 +172,8 @@ export default function Dashboard() {
       <aside className="hidden lg:flex flex-col w-64 bg-[#0A192F] fixed inset-y-0 left-0 z-30">
         <div className="p-6 border-b border-white/10">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center">
-              <Shield className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center p-1 shadow-lg shadow-emerald-500/20">
+              <img src="/logo.png" alt="Verifio" className="w-full h-full object-contain" />
             </div>
             <span className="text-white font-bold text-lg">Verifio</span>
           </div>
