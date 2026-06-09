@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Verifio"
+version = "1.0.0"
+id = "artifacts/verifio"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 21538
+
+[services.development]
+run = "pnpm --filter @workspace/verifio run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/verifio", "run", "build" ]
+publicDir = "artifacts/verifio/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "21538"
+BASE_PATH = "/"
