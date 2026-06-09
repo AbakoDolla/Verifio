@@ -6,6 +6,8 @@ import LandingPage from "@/pages/LandingPage";
 import VendorProfile from "@/pages/VendorProfile";
 import Dashboard from "@/pages/Dashboard";
 import NotFound from "@/pages/not-found";
+import SplashAnimation from "@/components/SplashAnimation";
+import OnboardingGuide from "@/components/OnboardingGuide";
 
 const queryClient = new QueryClient();
 
@@ -24,9 +26,12 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <Router />
-        </WouterRouter>
+        <SplashAnimation>
+          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+            <Router />
+            <OnboardingGuide />
+          </WouterRouter>
+        </SplashAnimation>
         <Toaster />
       </TooltipProvider>
     </QueryClientProvider>

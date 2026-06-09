@@ -160,23 +160,23 @@ export default function LandingPage() {
         </div>
 
         <div className="max-w-3xl mx-auto text-center relative">
-          <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold px-4 py-2 rounded-full mb-6">
+          <div className="animate-fade-up delay-100 inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold px-4 py-2 rounded-full mb-6">
             <img src="/logo.png" alt="" className="w-4 h-4 object-contain brightness-0 invert" />
             La sécurité du commerce social en Afrique
           </div>
 
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight mb-6">
+          <h1 className="animate-fade-up delay-200 text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight mb-6">
             Achetez en confiance.{" "}
             <span className="text-emerald-400">Vérifiez d'abord.</span>
           </h1>
 
-          <p className="text-white/60 text-lg max-w-xl mx-auto mb-12 leading-relaxed">
+          <p className="animate-fade-up delay-300 text-white/60 text-lg max-w-xl mx-auto mb-12 leading-relaxed">
             Verifio sécurise vos paiements Mobile Money pour les achats sur
             WhatsApp et Instagram. Zéro arnaque, zéro stress.
           </p>
 
           {/* Search bar */}
-          <div className="relative max-w-2xl mx-auto">
+          <div className="animate-fade-up delay-400 relative max-w-2xl mx-auto">
             <div className="relative bg-white rounded-2xl shadow-2xl shadow-black/40 overflow-visible">
               <div className="flex items-center px-5 py-4 gap-3">
                 <Search className="w-5 h-5 text-gray-400 flex-shrink-0" />
@@ -260,10 +260,10 @@ export default function LandingPage() {
       {/* Stats bar */}
       <section className="bg-[#0B132B] border-y border-white/5">
         <div className="max-w-6xl mx-auto px-4 py-8 grid grid-cols-2 lg:grid-cols-4 gap-6">
-          {STATS.map((stat) => (
+          {STATS.map((stat, i) => (
             <div
               key={stat.label}
-              className="flex flex-col items-center text-center gap-1"
+              className={`flex flex-col items-center text-center gap-1 animate-fade-up delay-${i * 100 + 100}`}
             >
               <stat.icon className="w-5 h-5 text-emerald-400 mb-1" />
               <div className="text-2xl font-bold text-white">{stat.value}</div>
@@ -297,7 +297,7 @@ export default function LandingPage() {
             {STEPS.map((step, i) => (
               <div
                 key={i}
-                className="relative bg-white rounded-2xl p-8 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-300 group"
+                className={`relative bg-white rounded-2xl p-8 shadow-sm border border-gray-100 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group animate-fade-up delay-${i * 150 + 200}`}
               >
                 <div className="flex items-start gap-4 mb-6">
                   <div
