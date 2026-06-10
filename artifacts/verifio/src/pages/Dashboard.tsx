@@ -19,6 +19,7 @@ import {
   Bell, Search, Filter, ExternalLink, Wallet, Package, Banknote,
   Shield, LogOut, Home, ChevronRight, X, Menu,
 } from "lucide-react";
+import { OperatorLogo } from "@/components/PaymentLogos";
 
 // ─── IMAGES ───────────────────────────────────────────────────────────────
 const PRODUCT_IMGS = [
@@ -395,7 +396,7 @@ export default function Dashboard() {
                               <div className="text-xs text-gray-400">{tx.phone}</div>
                             </td>
                             <td className="px-4 py-3"><span className="text-sm text-gray-600">{tx.product}</span></td>
-                            <td className="px-4 py-3"><span className="text-xs font-semibold text-gray-500 bg-gray-100 px-2.5 py-1 rounded-lg">{tx.operator}</span></td>
+                            <td className="px-4 py-3"><div className="flex items-center gap-1.5"><OperatorLogo id={tx.operator.toLowerCase()} size={22} /><span className="text-xs font-semibold text-gray-700">{tx.operator}</span></div></td>
                             <td className="px-4 py-3"><span className="font-black text-[#0A192F] text-sm">{tx.amount.toLocaleString("fr-FR")}</span> <span className="text-xs text-gray-400">FCFA</span></td>
                             <td className="px-4 py-3"><span className="text-xs text-gray-400">{tx.date}</span></td>
                             <td className="px-4 py-3">
@@ -442,7 +443,7 @@ export default function Dashboard() {
                           </div>
                         </div>
                         <div className="flex items-center justify-between mt-2">
-                          <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-md">{tx.operator} · {tx.date}</span>
+                          <span className="flex items-center gap-1 text-[10px] font-semibold text-gray-400"><OperatorLogo id={tx.operator.toLowerCase()} size={16} />{tx.operator} · {tx.date}</span>
                           <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${s.bg} ${s.color}`}>
                             <div className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />{s.label}
                           </span>
@@ -674,3 +675,4 @@ export default function Dashboard() {
     </div>
   );
 }
+
