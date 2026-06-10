@@ -1,50 +1,74 @@
-```
-# VERIFIO 🛡️
+# 🛡️ VERIFIO
 
-> L'infrastructure de confiance pour le commerce local et le social commerce par Mobile Money.
+> L'infrastructure de confiance pour le commerce local et le social commerce via Mobile Money.
 
-**Verifio** est une plateforme de tiers de confiance (Escrow) conçue pour sécuriser les transactions de gré à gré sur les réseaux sociaux (WhatsApp, Instagram, Facebook). En agissant comme un coffre-fort temporaire, l'application protège les acheteurs contre les arnaques au paiement de manière simple, rapide et accessible.
+**Verifio** est une plateforme de tiers de confiance (Escrow) conçue pour sécuriser les transactions entre particuliers sur les réseaux sociaux (WhatsApp, Instagram, Facebook).
+
+Elle agit comme un **coffre-fort temporaire digital** : l’application protège les acheteurs contre les arnaques au paiement en rendant chaque transaction plus simple, rapide et sécurisée.
 
 ---
 
 ## 💡 Le Problème & Notre Solution
 
-Dans le commerce en ligne local, l'asymétrie de confiance bloque des milliers de ventes : l'acheteur a peur de payer avant d'être livré, et le vendeur a peur d'expédier sans garantie de paiement. 
+Dans le commerce en ligne local, un déséquilibre de confiance bloque de nombreuses ventes :
 
-**Verifio résout cette impasse** en gelant les fonds de l'acheteur via Mobile Money. L'argent n'est transféré au vendeur que lorsque l'acheteur confirme la réception et la conformité de son colis.
+- L’acheteur hésite à payer sans garantie de réception ❌  
+- Le vendeur hésite à expédier sans garantie de paiement ❌  
+
+**Verifio résout ce problème** grâce à un système d’**Escrow Mobile Money** :
+
+👉 Les fonds de l’acheteur sont gelés temporairement  
+👉 Le paiement n’est libéré qu’après confirmation de réception et de conformité du produit  
 
 ---
 
 ## 🔄 Fonctionnement de la Plateforme
 
-Le parcours utilisateur a été optimisé pour être fluide, rapide et *mobile-first* :
+Le parcours utilisateur est conçu pour être simple, rapide et *mobile-first* :
 
-1. **L'Initiation :** Le vendeur ou l'acheteur crée une intention de transaction sécurisée et génère un lien de paiement unique Verifio.
-2. **La Sécurisation (Le Dépôt) :** L'acheteur clique sur le lien, accède à l'interface sécurisée et dépose les fonds via son opérateur Mobile Money (MTN, Orange, Wave). Les fonds sont alors gelés par Verifio.
-3. **Le Feu Vert :** Dès la réception des fonds, le vendeur reçoit une notification automatique lui confirmant que l'argent est sécurisé et qu'il peut procéder à l'expédition en toute sérénité.
-4. **La Livraison & Libération :** Une fois le colis entre les mains de l'acheteur et vérifié, ce dernier valide la réception sur l'application. Verifio débloque instantanément l'argent vers le compte Mobile Money du vendeur.
+1. **Initiation**
+   - Le vendeur ou l’acheteur crée une transaction sécurisée
+   - Un lien de paiement unique Verifio est généré
+
+2. **Sécurisation (Dépôt des fonds)**
+   - L’acheteur paie via Mobile Money (MTN, Orange, Wave)
+   - Les fonds sont automatiquement bloqués par Verifio
+
+3. **Confirmation vendeur**
+   - Le vendeur reçoit une notification confirmant la sécurité des fonds
+   - Il peut expédier le produit en toute confiance
+
+4. **Livraison & libération**
+   - L’acheteur confirme la réception du colis
+   - Verifio libère automatiquement les fonds vers le vendeur
 
 ---
 
 ## ✨ Fonctionnalités Majeures
 
-* **Profils Marchands Certifiés :** Pages vitrines pour les vendeurs affichant leur historique de ventes réussies et leur indice de confiance global.
-* **Générateur de QR Code :** Un badge de confiance unique téléchargeable pour les stories Instagram ou les boutiques physiques.
-* **Gestion des Litiges Intégrée :** Un protocole clair de médiation en cas de produit non conforme ou de retard de livraison.
-* **Interface Multi-Opérateurs :** Prise en charge des principaux moyens de paiement Mobile Money locaux en une seule interface épurée.
+- 🧑‍💼 Profils marchands certifiés avec historique de ventes  
+- 📊 Système de réputation et indice de confiance  
+- 📸 Générateur de QR Code de confiance partageable  
+- ⚖️ Gestion des litiges intégrée  
+- 📱 Support multi-opérateurs Mobile Money  
+- ⚡ Expérience fluide, rapide et mobile-first  
 
 ---
 
-## 🚀 Lancement en Mode Développement
+## 🚀 Lancement en mode développement
 
-### Prérequis
-* Node.js & un gestionnaire de paquets (`pnpm` ou `npm`)
-* Python 3.10+
+### 📌 Prérequis
+- Node.js + npm ou pnpm  
+- Python 3.10+  
 
-### Composant Frontend (Interface Utilisateur)
-1. Accédez au dossier de l'interface :
+---
+
+### 🖥️ Frontend (Interface utilisateur)
+
 ```bash
-   cd frontend
+cd frontend
+pnpm install
+pnpm run dev
 
 ```
  2. Installez les modules requis :
