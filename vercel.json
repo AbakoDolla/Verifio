@@ -1,0 +1,6 @@
+{
+  "buildCommand": "pnpm --filter @workspace/verifio run build",
+  "outputDirectory": "artifacts/verifio/dist/public",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "framework": null
+}
