@@ -17,6 +17,7 @@ import {
   AlertTriangle, TrendingUp, ShoppingBag, ArrowRight, Smartphone,
   Wallet, Shield, Clock, MessageCircle, Info, Package,
 } from "lucide-react";
+import { OperatorLogo } from "@/components/PaymentLogos";
 
 // ─── IMAGES ───────────────────────────────────────────────────────────────
 const PRODUCT_IMAGES = [
@@ -48,9 +49,9 @@ const REVIEWS = [
 ];
 
 const OPERATORS = [
-  { id: "mtn",    label: "MTN MoMo",     color: "#FFC107", textColor: "#000", prefix: "05 / 07" },
-  { id: "orange", label: "Orange Money", color: "#FF6B00", textColor: "#fff", prefix: "01 / 09" },
-  { id: "wave",   label: "Wave",         color: "#1A73E8", textColor: "#fff", prefix: "07 / 01" },
+  { id: "mtn",    label: "MTN MoMo",     prefix: "05 / 07" },
+  { id: "orange", label: "Orange Money", prefix: "01 / 09" },
+  { id: "wave",   label: "Wave",         prefix: "07 / 01" },
 ];
 
 type ModalStep = "form" | "confirm" | "processing" | "success";
@@ -500,7 +501,7 @@ export default function VendorProfile() {
                           <button key={op.id} type="button" onClick={() => setSelectedOp(op.id)}
                             className={`relative p-3.5 rounded-2xl border-2 text-center transition-all ${selectedOp === op.id ? "border-emerald-500 bg-emerald-50 scale-[1.02]" : "border-gray-200 bg-gray-50 hover:border-gray-300"}`}>
                             {selectedOp === op.id && <div className="absolute top-1.5 right-1.5 w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center"><CheckCircle2 className="w-2.5 h-2.5 text-white" /></div>}
-                            <div className="w-9 h-9 rounded-full mx-auto mb-2 flex items-center justify-center font-black text-sm shadow-sm" style={{ backgroundColor: op.color, color: op.textColor }}>{op.label.charAt(0)}</div>
+                            <div className="w-10 h-10 mx-auto mb-2"><OperatorLogo id={op.id} size={38} /></div>
                             <div className="text-xs font-bold text-gray-700 leading-tight">{op.label.split(" ")[0]}</div>
                             <div className="text-[10px] text-gray-400 mt-0.5">{op.prefix}</div>
                           </button>
@@ -603,3 +604,4 @@ export default function VendorProfile() {
     </div>
   );
 }
+
