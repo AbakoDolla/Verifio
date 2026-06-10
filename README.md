@@ -1,4 +1,4 @@
-```markdown
+```
 # VERIFIO 🛡️
 
 > L'infrastructure de confiance pour le commerce local et le social commerce par Mobile Money.
