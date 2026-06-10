@@ -17,6 +17,7 @@ import {
   Smartphone, MessageCircle, Instagram, ChevronLeft,
   ShoppingBag, Cpu, Flower2, Utensils, Sofa, Gem,
 } from "lucide-react";
+import { OperatorBadge } from "@/components/PaymentLogos";
 
 // ─── IMAGES ───────────────────────────────────────────────────────────────
 const IMG = {
@@ -394,13 +395,15 @@ export default function LandingPage() {
               { icon: Lock,         label: "Paiement escrow certifié" },
               { icon: Shield,       label: "Identité vendeur vérifiée" },
               { icon: CheckCircle2, label: "Remboursement garanti" },
-              { icon: Smartphone,   label: "MTN · Orange · Wave" },
             ].map(b => (
               <div key={b.label} className="flex items-center gap-2 text-gray-500">
                 <b.icon className="w-4 h-4 text-emerald-500 flex-shrink-0" />
                 <span className="text-xs sm:text-sm font-semibold whitespace-nowrap">{b.label}</span>
               </div>
             ))}
+            <div className="flex items-center gap-1.5">
+              {["mtn","orange","wave"].map(id => <OperatorBadge key={id} id={id} size="sm" />)}
+            </div>
           </div>
         </div>
       </section>
@@ -571,14 +574,8 @@ export default function LandingPage() {
               </div>
               {/* Operator pills */}
               <div className="absolute bottom-4 sm:bottom-8 left-4 sm:left-8 flex gap-2 flex-wrap">
-                {[
-                  { name: "MTN MoMo",     color: "#FFC107", text: "#000" },
-                  { name: "Orange Money", color: "#FF6B00", text: "#fff" },
-                  { name: "Wave",         color: "#1A73E8", text: "#fff" },
-                ].map(op => (
-                  <div key={op.name} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold shadow-lg border border-white/20" style={{ backgroundColor: op.color, color: op.text }}>
-                    <Smartphone className="w-3 h-3" /> {op.name}
-                  </div>
+                {["mtn", "orange", "wave"].map(id => (
+                  <OperatorBadge key={id} id={id} size="sm" />
                 ))}
               </div>
             </div>
@@ -724,3 +721,4 @@ export default function LandingPage() {
     </div>
   );
 }
+
