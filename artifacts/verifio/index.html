@@ -1,21 +1,148 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
-    <title>Verifio</title>
-    <meta name="description" content="Verifio — built on Replit. Update this description to reflect the app." />
-    <meta name="robots" content="index, follow" />
-    <meta property="og:title" content="Verifio" />
-    <meta property="og:description" content="Verifio — built on Replit. Update this description to reflect the app." />
-    <meta property="og:type" content="website" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Verifio" />
-    <meta name="twitter:description" content="Verifio — built on Replit. Update this description to reflect the app." />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5" />
+
+    <!-- ═══════════════════════════════════════════════════════
+         SEO PRIMAIRE
+    ═══════════════════════════════════════════════════════ -->
+    <title>Verifio — Tiers de confiance pour le commerce social africain</title>
+    <meta name="description" content="Verifio sécurise vos paiements Mobile Money (MTN, Orange, Wave) pour les achats sur WhatsApp et Instagram. Vérifiez un vendeur, payez en escrow, et récupérez votre argent si problème. Zéro arnaque, zéro stress." />
+    <meta name="keywords" content="escrow mobile money, paiement sécurisé Côte d'Ivoire, tiers de confiance whatsapp, verifio, MTN MoMo escrow, Orange Money sécurisé, commerce social afrique, vente whatsapp sécurisée, anti-arnaque cote ivoire" />
+    <meta name="author" content="Verifio" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <meta name="language" content="fr" />
+    <meta name="geo.region" content="CI" />
+    <meta name="geo.placename" content="Côte d'Ivoire" />
+    <link rel="canonical" href="https://verifio.app/" />
+
+    <!-- ═══════════════════════════════════════════════════════
+         OPEN GRAPH (Facebook, WhatsApp, LinkedIn)
+    ═══════════════════════════════════════════════════════ -->
+    <meta property="og:type"        content="website" />
+    <meta property="og:url"         content="https://verifio.app/" />
+    <meta property="og:site_name"   content="Verifio" />
+    <meta property="og:locale"      content="fr_CI" />
+    <meta property="og:title"       content="Verifio — Achetez en confiance. Vérifiez d'abord." />
+    <meta property="og:description" content="Le tiers de confiance du commerce social africain. Sécurisez vos paiements Mobile Money pour vos achats WhatsApp & Instagram. 2 400+ vendeurs certifiés, 18 000+ transactions sécurisées." />
+    <meta property="og:image"       content="https://verifio.app/og-image.png" />
+    <meta property="og:image:width"  content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt"    content="Verifio — Tiers de confiance Mobile Money Afrique" />
+
+    <!-- ═══════════════════════════════════════════════════════
+         TWITTER / X CARD
+    ═══════════════════════════════════════════════════════ -->
+    <meta name="twitter:card"        content="summary_large_image" />
+    <meta name="twitter:site"        content="@verifio_app" />
+    <meta name="twitter:creator"     content="@verifio_app" />
+    <meta name="twitter:title"       content="Verifio — Achetez en confiance sur WhatsApp & Instagram" />
+    <meta name="twitter:description" content="Paiement escrow Mobile Money pour le commerce social africain. Vérifiez votre vendeur en 2 secondes." />
+    <meta name="twitter:image"       content="https://verifio.app/og-image.png" />
+
+    <!-- ═══════════════════════════════════════════════════════
+         PWA / MOBILE
+    ═══════════════════════════════════════════════════════ -->
+    <meta name="theme-color" content="#0A192F" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Verifio" />
+    <link rel="apple-touch-icon" href="/logo.png" />
+    <link rel="icon" type="image/png" href="/logo.png" />
+
+    <!-- ═══════════════════════════════════════════════════════
+         JSON-LD STRUCTURED DATA
+         TODO BACKEND: remplacer les URLs par les vraies URLs de prod
+    ═══════════════════════════════════════════════════════ -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://verifio.app/#organization",
+          "name": "Verifio",
+          "url": "https://verifio.app",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://verifio.app/logo.png",
+            "width": 512,
+            "height": 512
+          },
+          "description": "Tiers de confiance pour les paiements Mobile Money dans le commerce social africain (WhatsApp, Instagram).",
+          "foundingDate": "2024",
+          "areaServed": ["CI", "GH", "SN", "CM", "BJ"],
+          "sameAs": ["https://twitter.com/verifio_app", "https://instagram.com/verifio_app"],
+          "contactPoint": {
+            "@type": "ContactPoint",
+            "contactType": "customer support",
+            "availableLanguage": ["fr", "en"],
+            "contactOption": "TollFree"
+          }
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://verifio.app/#website",
+          "url": "https://verifio.app",
+          "name": "Verifio",
+          "description": "Tiers de confiance Mobile Money pour le commerce social africain",
+          "publisher": { "@id": "https://verifio.app/#organization" },
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": { "@type": "EntryPoint", "urlTemplate": "https://verifio.app/?q={search_term_string}" },
+            "query-input": "required name=search_term_string"
+          }
+        },
+        {
+          "@type": "FinancialService",
+          "@id": "https://verifio.app/#service",
+          "name": "Verifio Escrow",
+          "description": "Service de paiement en séquestre (escrow) via Mobile Money pour sécuriser les transactions de commerce social en Afrique de l'Ouest.",
+          "provider": { "@id": "https://verifio.app/#organization" },
+          "areaServed": "West Africa",
+          "serviceType": "Escrow Payment Service",
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "XOF",
+            "description": "Gratuit pendant la période bêta"
+          }
+        },
+        {
+          "@type": "FAQPage",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "Comment fonctionne le paiement escrow Verifio ?",
+              "acceptedAnswer": { "@type": "Answer", "text": "L'acheteur dépose les fonds via Mobile Money sur le compte séquestre Verifio. Le vendeur livre. L'acheteur confirme la réception et les fonds sont libérés. En cas de litige, Verifio arbitre et rembourse." }
+            },
+            {
+              "@type": "Question",
+              "name": "Quels opérateurs Mobile Money sont supportés ?",
+              "acceptedAnswer": { "@type": "Answer", "text": "Verifio supporte MTN Mobile Money, Orange Money et Wave dans les pays d'Afrique de l'Ouest." }
+            },
+            {
+              "@type": "Question",
+              "name": "Combien coûte Verifio ?",
+              "acceptedAnswer": { "@type": "Answer", "text": "Verifio est entièrement gratuit pendant la période bêta pour les vendeurs et les acheteurs." }
+            }
+          ]
+        }
+      ]
+    }
+    </script>
+
+    <!-- ═══════════════════════════════════════════════════════
+         FONTS — Inter + Poppins pour les titres
+    ═══════════════════════════════════════════════════════ -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Poppins:wght@700;800;900&display=swap" rel="stylesheet" />
+
+    <!-- Preload critical images -->
+    <link rel="preload" as="image" href="/logo.png" />
   </head>
   <body>
     <div id="root"></div>
