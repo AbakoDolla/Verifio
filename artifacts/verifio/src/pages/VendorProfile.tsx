@@ -70,7 +70,15 @@ export default function VendorProfile() {
   const [carouselIdx, setCarouselIdx] = useState(0);
   const [isDragging,  setIsDragging]  = useState(false);
   const [dragStart,   setDragStart]   = useState(0);
+  const [isPaused,    setIsPaused]    = useState(false);
   const carouselRef = useRef<HTMLDivElement>(null);
+
+  // ── Auto-scroll toutes les 3,5 s — pause si hover ou touch en cours
+  useEffect(() => {
+    if (isPaused) return;
+    const t = setInterval(() => setCarouselIdx(i => (i + 1) % PRODUCT_IMAGES.length), 3500);
+    return () => clearInterval(t);
+  }, [isPaused]);
   // Preselect product
   const [selectedProduct, setSelectedProduct] = useState<typeof PRODUCT_IMAGES[0] | null>(null);
 
@@ -114,12 +122,17 @@ export default function VendorProfile() {
   const nextSlide = () => setCarouselIdx(i => (i + 1) % PRODUCT_IMAGES.length);
   const prevSlide = () => setCarouselIdx(i => (i - 1 + PRODUCT_IMAGES.length) % PRODUCT_IMAGES.length);
 
-  const handleTouchStart = (e: React.TouchEvent) => { setDragStart(e.touches[0].clientX); setIsDragging(true); };
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setDragStart(e.touches[0].clientX);
+    setIsDragging(true);
+    setIsPaused(true);
+  };
   const handleTouchEnd = (e: React.TouchEvent) => {
     if (!isDragging) return;
     const diff = dragStart - e.changedTouches[0].clientX;
     if (Math.abs(diff) > 50) diff > 0 ? nextSlide() : prevSlide();
     setIsDragging(false);
+    setTimeout(() => setIsPaused(false), 4000);
   };
 
   return (
@@ -156,6 +169,8 @@ export default function VendorProfile() {
           ref={carouselRef}
           className="relative overflow-hidden bg-gray-900 select-none"
           style={{ aspectRatio: "4/3" }}
+          onMouseEnter={() => setIsPaused(true)}
+          onMouseLeave={() => setIsPaused(false)}
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
         >
