@@ -99,9 +99,7 @@ pnpm run dev
 ```
 ## 👥 Équipe
  * **Product & UI Developer :** Evans Abah
- * **Core & Infrastructure Developer :** Emanuel Epesse**
+ * **Core & Infrastructure Developer :** Emanuel Epesse
 © 2026 Verifio. Tous droits réservés.
-```
-
 ```
 
