@@ -1,21 +1,24 @@
-from django.contrib import admin
-from django.urls import path, include
+from django.urls import path
+from . import views
+from .webhooks import PSPWebhookView
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    # Liste et création
+    path('',                              views.TransactionListView.as_view(),   name='transaction-list'),
+    path('create/',                       views.TransactionCreateView.as_view(), name='transaction-create'),
 
-    # Auth (OTP, JWT, profil)
-    path('api/auth/',     include('accounts.urls')),
+    # Page publique via token (lien partagé à l'acheteur)
+    path('<str:token>/',                  views.TransactionPublicView.as_view(), name='transaction-public'),
 
-    # Vendeurs
-    path('api/vendors/',  include('vendors.urls')),
+    # Détail complet (vendeur/admin)
+    path('<str:token>/detail/',           views.TransactionDetailView.as_view(), name='transaction-detail'),
 
-    # Transactions
-    path('api/transactions/', include('transactions.urls')),
+    # Actions sur la transaction
+    path('<str:token>/deposit/',          views.TransactionDepositView.as_view(),  name='transaction-deposit'),
+    path('<str:token>/ship/',             views.TransactionShipView.as_view(),     name='transaction-ship'),
+    path('<str:token>/confirm/',          views.TransactionConfirmView.as_view(),  name='transaction-confirm'),
+    path('<str:token>/cancel/',           views.TransactionCancelView.as_view(),   name='transaction-cancel'),
 
-    # Litiges
-    path('api/disputes/', include('disputes.urls')),
-
-    # Notifications
-    path('api/notifications/', include('notifications.urls')),
+    # Webhook PSP
+    path('webhook/psp/',                  PSPWebhookView.as_view(),               name='webhook-psp'),
 ]

@@ -1,101 +1,111 @@
 from rest_framework import serializers
-from django.contrib.auth import get_user_model
-from .models import OTPCode
-
-User = get_user_model()
+from django.utils import timezone
+from .models import Transaction
 
 
-class UserSerializer(serializers.ModelSerializer):
-    """Profil complet de l'utilisateur connecté."""
-    is_vendor   = serializers.BooleanField(read_only=True)
-    is_verified = serializers.BooleanField(read_only=True)
+class TransactionCreateSerializer(serializers.ModelSerializer):
+    """Création d'une transaction par le vendeur."""
 
     class Meta:
-        model  = User
+        model  = Transaction
         fields = [
-            'id',
-            'phone',
-            'name',
-            'role',
-            'kyc_status',
-            'is_verified',
-            'is_vendor',
-            'otp_verified_at',
+            'amount_fcfa',
+            'product_description',
+            'delivery_zone',
+            'delivery_deadline',
+        ]
+
+    def validate_amount_fcfa(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("Le montant doit être supérieur à 0.")
+        if value < 500:
+            raise serializers.ValidationError("Montant minimum : 500 FCFA.")
+        return value
+
+    def validate_delivery_deadline(self, value):
+        if value <= timezone.now():
+            raise serializers.ValidationError(
+                "La date de livraison doit être dans le futur."
+            )
+        return value
+
+
+class TransactionPublicSerializer(serializers.ModelSerializer):
+    """
+    Vue publique d'une transaction — accessible via le token URL.
+    Affichée à l'acheteur avant le dépôt.
+    """
+    net_fcfa     = serializers.IntegerField(read_only=True)
+    seller_name  = serializers.CharField(source='seller.shop_name', read_only=True)
+    seller_slug  = serializers.CharField(source='seller.shop_slug', read_only=True)
+    trust_level  = serializers.CharField(source='seller.trust_score.level', read_only=True)
+
+    class Meta:
+        model  = Transaction
+        fields = [
+            'token',
+            'seller_name',
+            'seller_slug',
+            'trust_level',
+            'status',
+            'amount_fcfa',
+            'fee_fcfa',
+            'net_fcfa',
+            'product_description',
+            'delivery_zone',
+            'delivery_deadline',
             'created_at',
         ]
-        read_only_fields = [
-            'id', 'phone', 'role', 'kyc_status',
-            'is_verified', 'is_vendor', 'otp_verified_at', 'created_at'
+        read_only_fields = fields
+
+
+class TransactionDetailSerializer(serializers.ModelSerializer):
+    """Vue complète — pour le vendeur ou l'admin."""
+    net_fcfa    = serializers.IntegerField(read_only=True)
+    seller_name = serializers.CharField(source='seller.shop_name', read_only=True)
+    buyer_phone = serializers.SerializerMethodField()
+
+    class Meta:
+        model  = Transaction
+        fields = [
+            'id',
+            'token',
+            'seller_name',
+            'buyer_phone',
+            'status',
+            'amount_fcfa',
+            'fee_fcfa',
+            'net_fcfa',
+            'product_description',
+            'delivery_zone',
+            'delivery_deadline',
+            'psp_reference',
+            'payout_reference',
+            'confirmed_at',
+            'created_at',
+            'updated_at',
         ]
+        read_only_fields = fields
+
+    def get_buyer_phone(self, obj):
+        return obj.buyer.phone if obj.buyer else None
 
 
-class UserUpdateSerializer(serializers.ModelSerializer):
-    """Mise à jour du nom uniquement."""
-
-    class Meta:
-        model  = User
-        fields = ['name']
-
-
-class RequestOTPSerializer(serializers.Serializer):
-    """Demande d'envoi d'un code OTP."""
-    phone = serializers.CharField(max_length=20)
-
-    def validate_phone(self, value):
-        # Normaliser le numéro (retirer espaces)
-        value = value.replace(' ', '').strip()
-        if not value.startswith('+'):
-            raise serializers.ValidationError(
-                "Le numéro doit commencer par l'indicatif pays (ex: +226)."
-            )
-        return value
-
-
-class VerifyOTPSerializer(serializers.Serializer):
-    """Vérification du code OTP reçu."""
-    phone = serializers.CharField(max_length=20)
-    code  = serializers.CharField(max_length=6, min_length=6)
-
-    def validate_code(self, value):
-        if not value.isdigit():
-            raise serializers.ValidationError("Le code OTP doit contenir 6 chiffres.")
-        return value
-
-
-class RegisterSerializer(serializers.ModelSerializer):
-    """Création d'un nouveau compte utilisateur."""
+class TransactionListSerializer(serializers.ModelSerializer):
+    """Vue résumée pour les listes."""
+    net_fcfa    = serializers.IntegerField(read_only=True)
+    seller_name = serializers.CharField(source='seller.shop_name', read_only=True)
 
     class Meta:
-        model  = User
-        fields = ['phone', 'name', 'role']
-
-    def validate_phone(self, value):
-        value = value.replace(' ', '').strip()
-        if User.objects.filter(phone=value).exists():
-            raise serializers.ValidationError("Ce numéro est déjà enregistré.")
-        if not value.startswith('+'):
-            raise serializers.ValidationError(
-                "Le numéro doit commencer par l'indicatif pays (ex: +226)."
-            )
-        return value
-
-    def validate_role(self, value):
-        # Un utilisateur ne peut pas s'inscrire comme admin
-        if value == User.Role.ADMIN:
-            raise serializers.ValidationError("Rôle non autorisé.")
-        return value
-
-    def create(self, validated_data):
-        user = User.objects.create_user(
-            phone=validated_data['phone'],
-            name=validated_data['name'],
-            role=validated_data.get('role', User.Role.BUYER),
-        )
-        return user
-
-
-class TokenSerializer(serializers.Serializer):
-    """Tokens JWT retournés après authentification."""
-    access  = serializers.CharField()
-    refresh = serializers.CharField()
-    user    = UserSerializer()
+        model  = Transaction
+        fields = [
+            'id',
+            'token',
+            'seller_name',
+            'status',
+            'amount_fcfa',
+            'net_fcfa',
+            'product_description',
+            'delivery_deadline',
+            'created_at',
+        ]

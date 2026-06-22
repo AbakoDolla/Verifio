@@ -2,197 +2,254 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from rest_framework_simplejwt.tokens import RefreshToken
-from django.contrib.auth import get_user_model
+from django.shortcuts import get_object_or_404
 
+from .models import Transaction
 from .serializers import (
-    UserSerializer,
-    UserUpdateSerializer,
-    RequestOTPSerializer,
-    VerifyOTPSerializer,
-    RegisterSerializer,
+    TransactionCreateSerializer,
+    TransactionPublicSerializer,
+    TransactionDetailSerializer,
+    TransactionListSerializer,
 )
-from .services import create_otp_for_user, send_otp_whatsapp, verify_otp
-
-User = get_user_model()
-
-
-def get_tokens_for_user(user):
-    """Génère les tokens JWT pour un utilisateur."""
-    refresh = RefreshToken.for_user(user)
-    return {
-        'access':  str(refresh.access_token),
-        'refresh': str(refresh),
-    }
+from .services import (
+    create_transaction,
+    initiate_payment,
+    mark_delivery_in_progress,
+    confirm_delivery,
+    cancel_transaction,
+)
 
 
-class RegisterView(APIView):
+class TransactionCreateView(APIView):
     """
-    POST /api/auth/register/
-    Crée un nouveau compte et envoie un OTP de vérification.
+    POST /api/transactions/
+    Le vendeur crée une nouvelle transaction escrow.
     """
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        serializer = RegisterSerializer(data=request.data)
+        # Vérifier que l'user est un vendeur
+        if not hasattr(request.user, 'vendor'):
+            return Response(
+                {"detail": "Seuls les vendeurs peuvent créer des transactions."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        vendor = request.user.vendor
+
+        # Vérifier que le compte n'est pas gelé
+        if vendor.is_frozen:
+            return Response(
+                {"detail": "Votre compte est gelé. Contactez le support Verifio."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        serializer = TransactionCreateSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        user = serializer.save()
-
-        # Envoyer l'OTP de vérification
-        otp = create_otp_for_user(user)
-        send_otp_whatsapp(user.phone, otp.code)
+        txn = create_transaction(vendor, serializer.validated_data)
 
         return Response(
-            {
-                "detail": f"Compte créé. Un code de vérification a été envoyé au {user.phone}.",
-                "phone": user.phone,
-            },
+            TransactionDetailSerializer(txn).data,
             status=status.HTTP_201_CREATED
         )
 
 
-class RequestOTPView(APIView):
+class TransactionPublicView(APIView):
     """
-    POST /api/auth/request-otp/
-    Demande un code OTP pour se connecter.
-    """
-    permission_classes = [AllowAny]
-
-    def post(self, request):
-        serializer = RequestOTPSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-        phone = serializer.validated_data['phone']
-
-        try:
-            user = User.objects.get(phone=phone)
-        except User.DoesNotExist:
-            # Ne pas révéler si le numéro existe ou non (sécurité)
-            return Response({
-                "detail": f"Si ce numéro est enregistré, un code sera envoyé."
-            })
-
-        if not user.is_active:
-            return Response(
-                {"detail": "Ce compte est désactivé."},
-                status=status.HTTP_403_FORBIDDEN
-            )
-
-        otp = create_otp_for_user(user)
-        send_otp_whatsapp(phone, otp.code)
-
-        return Response({
-            "detail": f"Code OTP envoyé au {phone}. Valable 10 minutes."
-        })
-
-
-class VerifyOTPView(APIView):
-    """
-    POST /api/auth/verify-otp/
-    Vérifie le code OTP et retourne les tokens JWT.
+    GET /api/transactions/<token>/
+    Page publique de la transaction — accessible à l'acheteur via le lien partagé.
+    Pas besoin d'être connecté.
     """
     permission_classes = [AllowAny]
 
-    def post(self, request):
-        serializer = VerifyOTPSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    def get(self, request, token):
+        txn = get_object_or_404(Transaction, token=token)
 
-        phone = serializer.validated_data['phone']
-        code  = serializer.validated_data['code']
-
-        success, result = verify_otp(phone, code)
-
-        if not success:
+        # Ne pas exposer les transactions annulées
+        if txn.status == Transaction.Status.CANCELLED:
             return Response(
-                {"detail": result},
-                status=status.HTTP_400_BAD_REQUEST
+                {"detail": "Cette transaction n'est plus disponible."},
+                status=status.HTTP_404_NOT_FOUND
             )
 
-        user   = result
-        tokens = get_tokens_for_user(user)
-
-        return Response({
-            "access":  tokens['access'],
-            "refresh": tokens['refresh'],
-            "user":    UserSerializer(user).data,
-        })
+        return Response(TransactionPublicSerializer(txn).data)
 
 
-class RefreshTokenView(APIView):
+class TransactionDepositView(APIView):
     """
-    POST /api/auth/refresh/
-    Renouvelle le token d'accès avec le refresh token.
-    """
-    permission_classes = [AllowAny]
-
-    def post(self, request):
-        refresh_token = request.data.get('refresh')
-        if not refresh_token:
-            return Response(
-                {"detail": "Refresh token manquant."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        try:
-            refresh = RefreshToken(refresh_token)
-            return Response({
-                "access": str(refresh.access_token)
-            })
-        except Exception:
-            return Response(
-                {"detail": "Refresh token invalide ou expiré."},
-                status=status.HTTP_401_UNAUTHORIZED
-            )
-
-
-class LogoutView(APIView):
-    """
-    POST /api/auth/logout/
-    Invalide le refresh token (blacklist).
+    POST /api/transactions/<token>/deposit/
+    L'acheteur initie le dépôt des fonds.
     """
     permission_classes = [IsAuthenticated]
 
-    def post(self, request):
-        refresh_token = request.data.get('refresh')
-        if not refresh_token:
+    def post(self, request, token):
+        txn = get_object_or_404(Transaction, token=token)
+
+        # Vérifier que la transaction est bien en attente de paiement
+        if txn.status != Transaction.Status.INITIATED:
             return Response(
-                {"detail": "Refresh token manquant."},
+                {"detail": f"Cette transaction est déjà en statut '{txn.status}'."},
                 status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # L'acheteur ne peut pas être le vendeur
+        if txn.seller.user == request.user:
+            return Response(
+                {"detail": "Vous ne pouvez pas acheter votre propre produit."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        txn = initiate_payment(txn, buyer=request.user)
+
+        return Response({
+            "detail": "Dépôt initié. Procédez au paiement Mobile Money.",
+            "token":  txn.token,
+            "amount": txn.amount_fcfa,
+            "fee":    txn.fee_fcfa,
+            "status": txn.status,
+        })
+
+
+class TransactionShipView(APIView):
+    """
+    POST /api/transactions/<token>/ship/
+    Le vendeur confirme l'expédition.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, token):
+        txn = get_object_or_404(Transaction, token=token)
+
+        # Vérifier que c'est bien le vendeur de cette transaction
+        if txn.seller.user != request.user:
+            return Response(
+                {"detail": "Action non autorisée."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        if txn.status != Transaction.Status.FUNDS_SECURED:
+            return Response(
+                {"detail": "Les fonds doivent être sécurisés avant l'expédition."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        txn = mark_delivery_in_progress(txn)
+
+        return Response({
+            "detail": "Expédition confirmée. En attente de validation acheteur.",
+            "status": txn.status,
+        })
+
+
+class TransactionConfirmView(APIView):
+    """
+    POST /api/transactions/<token>/confirm/
+    L'acheteur confirme la réception conforme → déclenche le payout.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, token):
+        txn = get_object_or_404(Transaction, token=token)
+
+        # Vérifier que c'est bien l'acheteur
+        if txn.buyer != request.user:
+            return Response(
+                {"detail": "Action non autorisée."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        if txn.status != Transaction.Status.DELIVERY_IN_PROGRESS:
+            return Response(
+                {"detail": "La livraison doit être en cours pour confirmer."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        txn = confirm_delivery(txn)
+
+        return Response({
+            "detail": "Réception confirmée. Paiement libéré au vendeur.",
+            "status": txn.status,
+        })
+
+
+class TransactionCancelView(APIView):
+    """
+    POST /api/transactions/<token>/cancel/
+    Annule une transaction (avant sécurisation uniquement).
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, token):
+        txn = get_object_or_404(Transaction, token=token)
+
+        # Seul le vendeur peut annuler
+        if txn.seller.user != request.user:
+            return Response(
+                {"detail": "Action non autorisée."},
+                status=status.HTTP_403_FORBIDDEN
             )
 
         try:
-            token = RefreshToken(refresh_token)
-            token.blacklist()
-            return Response({"detail": "Déconnexion réussie."})
-        except Exception:
+            txn = cancel_transaction(txn)
+        except ValueError as e:
             return Response(
-                {"detail": "Token invalide."},
+                {"detail": str(e)},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        return Response({
+            "detail": "Transaction annulée.",
+            "status": txn.status,
+        })
 
-class MeView(APIView):
+
+class TransactionListView(APIView):
     """
-    GET /api/auth/me/   → profil de l'utilisateur connecté
-    PUT /api/auth/me/   → modifier le nom
+    GET /api/transactions/
+    Liste des transactions du vendeur connecté.
     """
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        serializer = UserSerializer(request.user)
+        if not hasattr(request.user, 'vendor'):
+            return Response(
+                {"detail": "Accès réservé aux vendeurs."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        txns = Transaction.objects.filter(
+            seller=request.user.vendor
+        ).order_by('-created_at')
+
+        # Filtrer par statut si fourni
+        status_filter = request.query_params.get('status')
+        if status_filter:
+            txns = txns.filter(status=status_filter)
+
+        serializer = TransactionListSerializer(txns, many=True)
         return Response(serializer.data)
 
-    def put(self, request):
-        serializer = UserUpdateSerializer(
-            request.user,
-            data=request.data,
-            partial=True
-        )
-        if serializer.is_valid():
-            serializer.save()
-            return Response(UserSerializer(request.user).data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class TransactionDetailView(APIView):
+    """
+    GET /api/transactions/<token>/detail/
+    Détail complet — vendeur ou admin uniquement.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, token):
+        txn = get_object_or_404(Transaction, token=token)
+
+        # Seul le vendeur ou un admin peut voir le détail complet
+        is_seller = hasattr(request.user, 'vendor') and txn.seller == request.user.vendor
+        is_admin  = request.user.role == 'admin'
+
+        if not (is_seller or is_admin):
+            return Response(
+                {"detail": "Accès non autorisé."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        return Response(TransactionDetailSerializer(txn).data)

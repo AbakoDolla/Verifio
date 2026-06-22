@@ -1,88 +1,144 @@
-import random
-import string
 from django.utils import timezone
-from datetime import timedelta
-from django.contrib.auth import get_user_model
-from .models import OTPCode
-
-User = get_user_model()
+from django.db import transaction as db_transaction
+from .models import Transaction
 
 
-def generate_otp_code():
-    """Génère un code OTP à 6 chiffres."""
-    return ''.join(random.choices(string.digits, k=6))
-
-
-def create_otp_for_user(user):
+def create_transaction(seller, data):
     """
-    Crée un OTP valide 10 minutes pour l'utilisateur.
-    Invalide les anciens OTP non utilisés.
+    Crée une nouvelle transaction escrow.
+    Retourne la transaction créée.
     """
-    # Invalider les anciens OTP
-    OTPCode.objects.filter(user=user, is_used=False).update(is_used=True)
-
-    otp = OTPCode.objects.create(
-        user=user,
-        code=generate_otp_code(),
-        expires_at=timezone.now() + timedelta(minutes=10),
+    txn = Transaction.objects.create(
+        seller=seller,
+        amount_fcfa=data['amount_fcfa'],
+        product_description=data['product_description'],
+        delivery_zone=data['delivery_zone'],
+        delivery_deadline=data['delivery_deadline'],
     )
-    return otp
+    return txn
 
 
-def send_otp_whatsapp(phone, code):
+def initiate_payment(transaction, buyer):
     """
-    Envoie le code OTP via Twilio WhatsApp.
-    En développement, affiche juste le code dans la console.
+    L'acheteur initie le dépôt.
+    Passe la transaction en 'payment_pending'.
     """
-    import os
-
-    if os.getenv('DJANGO_ENV') == 'production':
-        from twilio.rest import Client
-        client = Client(
-            os.getenv('TWILIO_ACCOUNT_SID'),
-            os.getenv('TWILIO_AUTH_TOKEN')
-        )
-        client.messages.create(
-            from_=f"whatsapp:{os.getenv('TWILIO_WHATSAPP_NUMBER')}",
-            to=f"whatsapp:{phone}",
-            body=f"Votre code Verifio est : *{code}*\nValable 10 minutes. Ne le partagez jamais."
-        )
-    else:
-        # Mode développement — afficher dans la console
-        print(f"\n{'='*40}")
-        print(f"  OTP pour {phone} : {code}")
-        print(f"{'='*40}\n")
+    with db_transaction.atomic():
+        transaction.buyer = buyer
+        transaction.save(update_fields=['buyer', 'updated_at'])
+        transaction.transition_to(Transaction.Status.PAYMENT_PENDING)
+    return transaction
 
 
-def verify_otp(phone, code):
+def confirm_payment_from_webhook(psp_reference, transaction_token):
     """
-    Vérifie le code OTP.
-    Retourne (True, user) si valide, (False, message_erreur) sinon.
+    Appelé par le webhook PSP quand le paiement est confirmé.
+    Passe la transaction en 'funds_secured'.
+    Idempotent : si déjà sécurisé, ne fait rien.
     """
     try:
-        user = User.objects.get(phone=phone)
-    except User.DoesNotExist:
-        return False, "Numéro introuvable."
+        txn = Transaction.objects.get(token=transaction_token)
+    except Transaction.DoesNotExist:
+        raise ValueError(f"Transaction introuvable : {transaction_token}")
 
-    otp = OTPCode.objects.filter(
-        user=user,
-        code=code,
-        is_used=False,
-    ).order_by('-created_at').first()
+    # Idempotence — ignorer si déjà traité
+    if txn.status == Transaction.Status.FUNDS_SECURED:
+        return txn
 
-    if not otp:
-        return False, "Code OTP invalide."
+    # Vérifier qu'on n'utilise pas une référence PSP déjà existante
+    if Transaction.objects.filter(psp_reference=psp_reference).exists():
+        raise ValueError(f"Référence PSP déjà utilisée : {psp_reference}")
 
-    if not otp.is_valid:
-        return False, "Code OTP expiré. Demandez un nouveau code."
+    with db_transaction.atomic():
+        txn.psp_reference = psp_reference
+        txn.save(update_fields=['psp_reference', 'updated_at'])
+        txn.transition_to(Transaction.Status.FUNDS_SECURED)
 
-    # Marquer l'OTP comme utilisé
-    otp.is_used = True
-    otp.save(update_fields=['is_used'])
+    # Envoyer la notification au vendeur
+    _notify_seller_funds_secured(txn)
 
-    # Mettre à jour la date de vérification OTP
-    user.otp_verified_at = timezone.now()
-    user.kyc_status = User.KycStatus.VERIFIED
-    user.save(update_fields=['otp_verified_at', 'kyc_status'])
+    return txn
 
-    return True, user
+
+def mark_delivery_in_progress(transaction):
+    """
+    Le vendeur confirme l'expédition.
+    Passe la transaction en 'delivery_in_progress'.
+    """
+    transaction.transition_to(Transaction.Status.DELIVERY_IN_PROGRESS)
+    return transaction
+
+
+def confirm_delivery(transaction):
+    """
+    L'acheteur confirme la réception conforme.
+    Passe la transaction en 'completed' et déclenche le payout.
+    """
+    with db_transaction.atomic():
+        transaction.confirmed_at = timezone.now()
+        transaction.save(update_fields=['confirmed_at', 'updated_at'])
+        transaction.transition_to(Transaction.Status.COMPLETED)
+
+    # Déclencher le payout vers le vendeur
+    _trigger_payout(transaction)
+
+    return transaction
+
+
+def cancel_transaction(transaction):
+    """
+    Annule une transaction (avant sécurisation uniquement).
+    """
+    if transaction.status not in [
+        Transaction.Status.INITIATED,
+        Transaction.Status.PAYMENT_PENDING
+    ]:
+        raise ValueError(
+            "Impossible d'annuler une transaction déjà sécurisée."
+        )
+    transaction.transition_to(Transaction.Status.CANCELLED)
+    return transaction
+
+
+def _notify_seller_funds_secured(transaction):
+    """
+    Notifie le vendeur que les fonds sont sécurisés.
+    La commande peut être expédiée.
+    """
+    try:
+        from notifications.services import send_notification
+        send_notification(
+            user=transaction.seller.user,
+            transaction=transaction,
+            notif_type='funds_secured',
+            channel='whatsapp',
+        )
+    except Exception as e:
+        # Ne pas bloquer la transaction si la notif échoue
+        import logging
+        logging.getLogger(__name__).error(f"Erreur notification : {e}")
+
+
+def _trigger_payout(transaction):
+    """
+    Déclenche le reversement du montant net au vendeur via PSP.
+    En dev, simule juste le payout.
+    """
+    import os
+    import logging
+    logger = logging.getLogger(__name__)
+
+    net = transaction.net_fcfa
+    vendor_phone = transaction.seller.user.phone
+
+    if os.getenv('DJANGO_ENV') == 'production':
+        # Appel réel à l'API PSP (FedaPay / CinetPay / Notch Pay)
+        # À implémenter selon le PSP choisi
+        logger.info(f"PAYOUT {net} FCFA → {vendor_phone} | txn {transaction.token[:8]}")
+    else:
+        # Mode dev — simuler
+        import uuid
+        payout_ref = f"PAY-DEV-{uuid.uuid4().hex[:12].upper()}"
+        transaction.payout_reference = payout_ref
+        transaction.save(update_fields=['payout_reference'])
+        logger.info(f"[DEV] Payout simulé {net} FCFA → {vendor_phone} | ref {payout_ref}")

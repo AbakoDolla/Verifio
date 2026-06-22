@@ -1,98 +1,157 @@
 from django.test import TestCase
-from django.contrib.auth import get_user_model
+from django.utils import timezone
+from datetime import timedelta
 from rest_framework.test import APIClient
 from rest_framework import status
-from .models import Vendor, TrustScore, Subscription
+from django.contrib.auth import get_user_model
+
+from vendors.models import Vendor, TrustScore
+from .models import Transaction
+from .services import (
+    create_transaction,
+    initiate_payment,
+    confirm_delivery,
+    cancel_transaction,
+)
 
 User = get_user_model()
 
 
-class VendorModelTest(TestCase):
+def make_seller():
+    user = User.objects.create_user(
+        phone='+22670000010', name='Vendeur Test', role='seller'
+    )
+    vendor = Vendor.objects.create(
+        user=user, shop_slug='test-shop', shop_name='Test Shop'
+    )
+    TrustScore.objects.create(vendor=vendor)
+    return user, vendor
+
+
+def make_buyer():
+    return User.objects.create_user(
+        phone='+22670000011', name='Acheteur Test', role='buyer'
+    )
+
+
+def make_txn(vendor):
+    return create_transaction(vendor, {
+        'amount_fcfa':         25000,
+        'product_description': 'Robe wax taille M',
+        'delivery_zone':       'Secteur 12',
+        'delivery_deadline':   timezone.now() + timedelta(days=3),
+    })
+
+
+class TransactionModelTest(TestCase):
 
     def setUp(self):
-        self.user = User.objects.create_user(
-            phone='+22670000001',
-            name='Test Vendeur',
-            password='testpass123',
-            role='seller'
+        self.seller_user, self.vendor = make_seller()
+        self.buyer = make_buyer()
+        self.txn = make_txn(self.vendor)
+
+    def test_token_generated(self):
+        self.assertIsNotNone(self.txn.token)
+        self.assertGreater(len(self.txn.token), 20)
+
+    def test_net_fcfa(self):
+        self.assertEqual(self.txn.net_fcfa, 25000 - 200)
+
+    def test_default_status_initiated(self):
+        self.assertEqual(self.txn.status, Transaction.Status.INITIATED)
+
+    def test_valid_transition(self):
+        self.assertTrue(
+            self.txn.can_transition_to(Transaction.Status.PAYMENT_PENDING)
         )
-        self.vendor = Vendor.objects.create(
-            user=self.user,
-            shop_slug='test-boutique',
-            shop_name='Boutique Test',
+
+    def test_invalid_transition(self):
+        self.assertFalse(
+            self.txn.can_transition_to(Transaction.Status.COMPLETED)
         )
-        TrustScore.objects.create(vendor=self.vendor)
 
-    def test_vendor_created(self):
-        self.assertEqual(self.vendor.shop_name, 'Boutique Test')
-        self.assertFalse(self.vendor.is_pro)
-
-    def test_is_pro_active_false_by_default(self):
-        self.assertFalse(self.vendor.is_pro_active)
-
-    def test_trust_level_grey_by_default(self):
-        self.assertEqual(self.vendor.trust_level, TrustScore.Level.GREY)
-
-    def test_trust_score_recalculate(self):
-        ts = self.vendor.trust_score
-        ts.total_transactions = 20
-        ts.successful_deliveries = 18
-        ts.dispute_rate_pct = 10.00
-        ts.recalculate()
-        # score = (18/20 * 100) - (10 * 2) = 90 - 20 = 70 → green
-        self.assertEqual(ts.level, TrustScore.Level.GREEN)
+    def test_transition_raises_on_invalid(self):
+        with self.assertRaises(ValueError):
+            self.txn.transition_to(Transaction.Status.COMPLETED)
 
 
-class VendorAPITest(TestCase):
+class TransactionServiceTest(TestCase):
+
+    def setUp(self):
+        self.seller_user, self.vendor = make_seller()
+        self.buyer = make_buyer()
+
+    def test_initiate_payment(self):
+        txn = make_txn(self.vendor)
+        txn = initiate_payment(txn, self.buyer)
+        self.assertEqual(txn.status, Transaction.Status.PAYMENT_PENDING)
+        self.assertEqual(txn.buyer, self.buyer)
+
+    def test_cancel_before_payment(self):
+        txn = make_txn(self.vendor)
+        txn = cancel_transaction(txn)
+        self.assertEqual(txn.status, Transaction.Status.CANCELLED)
+
+    def test_cannot_cancel_after_funds_secured(self):
+        txn = make_txn(self.vendor)
+        txn.status = Transaction.Status.FUNDS_SECURED
+        txn.save()
+        with self.assertRaises(ValueError):
+            cancel_transaction(txn)
+
+
+class TransactionAPITest(TestCase):
 
     def setUp(self):
         self.client = APIClient()
-        self.user = User.objects.create_user(
-            phone='+22670000002',
-            name='API Vendeur',
-            password='testpass123',
-            role='seller'
-        )
-        self.client.force_authenticate(user=self.user)
+        self.seller_user, self.vendor = make_seller()
+        self.buyer = make_buyer()
 
-    def test_create_vendor(self):
-        response = self.client.post('/api/vendors/create/', {
-            'shop_slug': 'ma-boutique',
-            'shop_name': 'Ma Boutique',
-            'description': 'Description test',
+    def test_create_transaction_as_seller(self):
+        self.client.force_authenticate(user=self.seller_user)
+        response = self.client.post('/api/transactions/create/', {
+            'amount_fcfa':         15000,
+            'product_description': 'Chaussures',
+            'delivery_zone':       'Bobo-Dioulasso',
+            'delivery_deadline':   (timezone.now() + timedelta(days=2)).isoformat(),
         })
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertTrue(Vendor.objects.filter(shop_slug='ma-boutique').exists())
-        # TrustScore créé automatiquement
-        vendor = Vendor.objects.get(shop_slug='ma-boutique')
-        self.assertTrue(hasattr(vendor, 'trust_score'))
+        self.assertIn('token', response.data)
 
-    def test_cannot_create_two_vendors(self):
-        Vendor.objects.create(
-            user=self.user,
-            shop_slug='premiere-boutique',
-            shop_name='Première Boutique'
-        )
-        response = self.client.post('/api/vendors/create/', {
-            'shop_slug': 'deuxieme-boutique',
-            'shop_name': 'Deuxième Boutique',
+    def test_buyer_cannot_create_transaction(self):
+        self.client.force_authenticate(user=self.buyer)
+        response = self.client.post('/api/transactions/create/', {
+            'amount_fcfa': 10000,
+            'product_description': 'Test',
+            'delivery_zone': 'Zone A',
+            'delivery_deadline': (timezone.now() + timedelta(days=1)).isoformat(),
         })
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
-    def test_public_profile_accessible_without_auth(self):
-        Vendor.objects.create(
-            user=self.user,
-            shop_slug='boutique-publique',
-            shop_name='Boutique Publique'
-        )
-        self.client.force_authenticate(user=None)
-        response = self.client.get('/api/vendors/boutique-publique/')
+    def test_public_view_accessible_without_auth(self):
+        txn = make_txn(self.vendor)
+        response = self.client.get(f'/api/transactions/{txn.token}/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['shop_name'], 'Boutique Publique')
+        self.assertEqual(response.data['amount_fcfa'], 25000)
 
-    def test_slug_invalid_characters(self):
-        response = self.client.post('/api/vendors/create/', {
-            'shop_slug': 'Boutique Invalide!',
-            'shop_name': 'Test',
-        })
+    def test_deposit_by_buyer(self):
+        txn = make_txn(self.vendor)
+        self.client.force_authenticate(user=self.buyer)
+        response = self.client.post(f'/api/transactions/{txn.token}/deposit/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        txn.refresh_from_db()
+        self.assertEqual(txn.status, Transaction.Status.PAYMENT_PENDING)
+
+    def test_seller_cannot_buy_own_product(self):
+        txn = make_txn(self.vendor)
+        self.client.force_authenticate(user=self.seller_user)
+        response = self.client.post(f'/api/transactions/{txn.token}/deposit/')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_filter_by_status(self):
+        make_txn(self.vendor)
+        make_txn(self.vendor)
+        self.client.force_authenticate(user=self.seller_user)
+        response = self.client.get('/api/transactions/?status=initiated')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 2)

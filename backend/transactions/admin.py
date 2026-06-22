@@ -1,56 +1,46 @@
 from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import User, OTPCode
+from .models import Transaction
 
 
-class OTPCodeInline(admin.TabularInline):
-    model      = OTPCode
-    extra      = 0
-    readonly_fields = ['code', 'is_used', 'expires_at', 'created_at']
-    can_delete = False
-
-    def has_add_permission(self, request, obj=None):
-        return False
-
-
-@admin.register(User)
-class UserAdmin(BaseUserAdmin):
-    list_display  = ['phone', 'name', 'role', 'kyc_status', 'is_active', 'created_at']
-    list_filter   = ['role', 'kyc_status', 'is_active']
-    search_fields = ['phone', 'name']
-    ordering      = ['-created_at']
-    readonly_fields = ['otp_verified_at', 'created_at', 'updated_at']
-    inlines       = [OTPCodeInline]
+@admin.register(Transaction)
+class TransactionAdmin(admin.ModelAdmin):
+    list_display  = [
+        'token_short', 'seller', 'buyer', 'status',
+        'amount_fcfa', 'net_fcfa', 'created_at'
+    ]
+    list_filter   = ['status']
+    search_fields = ['token', 'seller__shop_name', 'buyer__phone']
+    readonly_fields = [
+        'id', 'token', 'net_fcfa', 'psp_reference',
+        'payout_reference', 'confirmed_at', 'created_at', 'updated_at'
+    ]
+    ordering = ['-created_at']
 
     fieldsets = (
-        ('Informations', {
-            'fields': ('phone', 'name', 'role')
+        ('Identifiants', {
+            'fields': ('id', 'token')
         }),
-        ('Statut KYC', {
-            'fields': ('kyc_status', 'otp_verified_at')
+        ('Parties', {
+            'fields': ('seller', 'buyer')
         }),
-        ('Permissions', {
-            'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')
+        ('Montants', {
+            'fields': ('amount_fcfa', 'fee_fcfa', 'net_fcfa')
+        }),
+        ('Commande', {
+            'fields': ('product_description', 'delivery_zone', 'delivery_deadline')
+        }),
+        ('Statut & Paiement', {
+            'fields': ('status', 'psp_reference', 'payout_reference', 'confirmed_at')
         }),
         ('Dates', {
             'fields': ('created_at', 'updated_at')
         }),
     )
 
-    add_fieldsets = (
-        (None, {
-            'classes': ('wide',),
-            'fields': ('phone', 'name', 'role', 'password1', 'password2'),
-        }),
-    )
+    def token_short(self, obj):
+        return obj.token[:12] + '...'
+    token_short.short_description = 'Token'
 
-    # Remplacer username par phone
-    filter_horizontal   = ('groups', 'user_permissions',)
-
-
-@admin.register(OTPCode)
-class OTPCodeAdmin(admin.ModelAdmin):
-    list_display  = ['user', 'code', 'is_used', 'expires_at', 'created_at']
-    list_filter   = ['is_used']
-    readonly_fields = ['code', 'created_at']
-    search_fields = ['user__phone']
+    def net_fcfa(self, obj):
+        return f"{obj.net_fcfa} FCFA"
+    net_fcfa.short_description = 'Net vendeur'
